@@ -1,0 +1,1485 @@
+# =============================================================================
+# CORRELATION & REGRESSION ANALYSIS TEACHING APP - R SHINY
+# =============================================================================
+# Complete Interactive Learning System with Multiple Linear Regression
+# Developer: Dr. M.I.M. Riyath, South Eastern University of Sri Lanka
+# =============================================================================
+
+library(shiny)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(DT)
+library(shinyWidgets)
+library(scales)
+library(car)  # For VIF calculation
+
+# =============================================================================
+# UI DEFINITION
+# =============================================================================
+
+ui <- fluidPage(
+  
+  # Custom CSS
+  tags$head(
+    tags$style(HTML("
+      :root {
+        --primary: #667eea;
+        --secondary: #764ba2;
+      }
+      
+      .plot-container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin: 20px 0;
+        position: relative;
+      }
+      
+      .large-plot {
+        min-height: 450px;
+      }
+      
+      .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        margin: 10px 0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        transition: transform 0.2s;
+      }
+      
+      .metric-card:hover {
+        transform: translateY(-5px);
+      }
+      
+      .metric-value {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 10px 0;
+      }
+      
+      .metric-label {
+        font-size: 13px;
+        opacity: 0.95;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      
+      .metric-sub {
+        font-size: 11px;
+        opacity: 0.8;
+        margin-top: 5px;
+      }
+      
+      .teaching-box {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 4px;
+      }
+      
+      .teaching-box h5 {
+        color: #667eea;
+        margin-top: 0;
+        font-weight: bold;
+      }
+      
+      .teaching-box p {
+        margin: 5px 0;
+        line-height: 1.6;
+      }
+      
+      .equation-box {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 15px 0;
+        text-align: center;
+        font-size: 18px;
+        font-family: 'Courier New', monospace;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      }
+      
+      .equation-formula {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 10px 0;
+      }
+      
+      .level-badge {
+        display: inline-block;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-right: 10px;
+      }
+      
+      .level-1 { background: #28a745; color: white; }
+      .level-2 { background: #17a2b8; color: white; }
+      .level-3 { background: #ffc107; color: black; }
+      .level-4 { background: #fd7e14; color: white; }
+      .level-5 { background: #dc3545; color: white; }
+      
+      .quiz-correct {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 12px;
+        border-radius: 5px;
+        margin: 10px 0;
+        font-weight: 500;
+      }
+      
+      .quiz-incorrect {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 5px;
+        margin: 10px 0;
+        font-weight: 500;
+      }
+      
+      .upload-area {
+        border: 2px dashed #667eea;
+        border-radius: 10px;
+        padding: 30px;
+        text-align: center;
+        background: #f8f9fa;
+        margin: 15px 0;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      
+      .upload-area:hover {
+        background: #e9ecef;
+        border-color: #764ba2;
+      }
+      
+      .upload-icon {
+        font-size: 48px;
+        color: #667eea;
+        margin-bottom: 10px;
+      }
+      
+      .app-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 25px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+        z-index: 1000;
+        font-size: 12px;
+      }
+      
+      .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      
+      .footer-dev {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .footer-contact a {
+        color: white;
+        text-decoration: underline;
+      }
+      
+      body {
+        padding-bottom: 80px;
+      }
+      
+      @media (max-width: 768px) {
+        .footer-content {
+          flex-direction: column;
+          gap: 8px;
+          text-align: center;
+        }
+        body {
+          padding-bottom: 120px;
+        }
+      }
+      
+      .secondary-table {
+        max-height: 350px;
+        overflow-y: auto;
+      }
+      
+      .fullscreen-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 100;
+      }
+      
+      .correlation-matrix {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+    "))
+  ),
+  
+  # App Header
+  div(
+    style = "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+             padding: 30px; 
+             color: white; 
+             margin-bottom: 30px;
+             box-shadow: 0 4px 6px rgba(0,0,0,0.1);",
+    h1("📈 Correlation & Regression Analysis Learning System", 
+       style = "margin: 0; font-weight: bold;"),
+    h4("Master Relationships Between Variables: Simple & Multiple Regression", 
+       style = "margin: 10px 0 0 0; opacity: 0.95; font-weight: normal;")
+  ),
+  
+  # Main Layout
+  sidebarLayout(
+    # =========================================================================
+    # SIDEBAR
+    # =========================================================================
+    sidebarPanel(
+      width = 3,
+      
+      h4("🎛️ Data Controls"),
+      
+      radioButtons(
+        "analysis_type",
+        "Analysis Type:",
+        choices = c(
+          "Simple Regression (2 variables)" = "simple",
+          "Multiple Regression (3+ variables)" = "multiple"
+        ),
+        selected = "simple"
+      ),
+      
+      hr(),
+      
+      radioButtons(
+        "data_source",
+        "Data Source:",
+        choices = c(
+          "🎲 Generate Data" = "generate",
+          "✍️ Manual Entry" = "manual",
+          "📁 Upload CSV" = "upload",
+          "📚 Example Dataset" = "example"
+        ),
+        selected = "generate"
+      ),
+      
+      # Simple regression generate
+      conditionalPanel(
+        condition = "input.data_source == 'generate' && input.analysis_type == 'simple'",
+        sliderInput("n_obs", "Sample Size:", 20, 200, 50, 10),
+        sliderInput("true_corr", "Correlation (r):", -1, 1, 0.7, 0.05),
+        numericInput("x_mean", "X Mean:", 50, 0, 200),
+        numericInput("x_sd", "X SD:", 10, 1, 50),
+        sliderInput("noise", "Noise Level:", 0, 20, 5, 1),
+        numericInput("rand_seed", "Seed:", 42, 1, 9999)
+      ),
+      
+      # Multiple regression generate
+      conditionalPanel(
+        condition = "input.data_source == 'generate' && input.analysis_type == 'multiple'",
+        sliderInput("n_obs_multi", "Sample Size:", 30, 200, 80, 10),
+        numericInput("n_predictors", "Number of Predictors:", 2, 1, 5, 1),
+        sliderInput("r_squared_target", "Target R²:", 0.3, 0.95, 0.7, 0.05),
+        numericInput("rand_seed_multi", "Seed:", 42, 1, 9999)
+      ),
+      
+      # Manual entry
+      conditionalPanel(
+        condition = "input.data_source == 'manual' && input.analysis_type == 'simple'",
+        textAreaInput("manual_x", "X values:", 
+                      value = "10,20,30,40,50,60,70,80,90,100", rows = 3),
+        textAreaInput("manual_y", "Y values:", 
+                      value = "25,35,50,55,70,75,85,95,100,110", rows = 3)
+      ),
+      
+      conditionalPanel(
+        condition = "input.data_source == 'manual' && input.analysis_type == 'multiple'",
+        helpText("Upload CSV file for multiple regression with manual data")
+      ),
+      
+      # CSV Upload
+      conditionalPanel(
+        condition = "input.data_source == 'upload'",
+        div(class = "upload-area",
+            div(class = "upload-icon", icon("file-upload")),
+            fileInput("csv_file", NULL, accept = c(".csv", ".txt"),
+                      buttonLabel = "Browse...", placeholder = "No file selected"),
+            conditionalPanel(
+              condition = "input.analysis_type == 'simple'",
+              p("Upload CSV with 2 columns (X, Y)", 
+                style = "margin: 10px 0 0 0; font-size: 0.9em; color: #666;")
+            ),
+            conditionalPanel(
+              condition = "input.analysis_type == 'multiple'",
+              p("Upload CSV: last column = Y, others = predictors", 
+                style = "margin: 10px 0 0 0; font-size: 0.9em; color: #666;")
+            )
+        )
+      ),
+      
+      # Examples
+      conditionalPanel(
+        condition = "input.data_source == 'example' && input.analysis_type == 'simple'",
+        selectInput("example_simple", "Select:",
+                    choices = c(
+                      "Sales vs Advertising" = "sales_ad",
+                      "Study Hours vs Score" = "study_exam",
+                      "Temperature vs Ice Cream" = "temp_ice",
+                      "Experience vs Salary" = "exp_salary"
+                    )
+        )
+      ),
+      
+      conditionalPanel(
+        condition = "input.data_source == 'example' && input.analysis_type == 'multiple'",
+        selectInput("example_multi", "Select:",
+                    choices = c(
+                      "House Price (3 predictors)" = "house",
+                      "Student Performance (4 predictors)" = "student",
+                      "Sales Prediction (3 predictors)" = "sales_multi"
+                    )
+        )
+      ),
+      
+      hr(),
+      
+      h5("📊 Visualization"),
+      checkboxInput("show_reg_line", "Regression Line", TRUE),
+      checkboxInput("show_confidence", "Confidence Interval", FALSE),
+      checkboxInput("show_residuals", "Residuals", FALSE),
+      
+      hr(),
+      
+      downloadButton("download_data", "Download Data", class = "btn-primary btn-block"),
+      downloadButton("download_report", "Download Report", class = "btn-secondary btn-block")
+    ),
+    
+    # =========================================================================
+    # MAIN PANEL
+    # =========================================================================
+    mainPanel(
+      width = 9,
+      
+      tabsetPanel(
+        id = "main_tabs",
+        
+        # =====================================================================
+        # TAB 1: SCATTER PLOT & CORRELATION
+        # =====================================================================
+        tabPanel(
+          "Level 1: Scatter Plot & Correlation",
+          icon = icon("chart-scatter"),
+          
+          br(),
+          h3(span(class = "level-badge level-1", "LEVEL 1"), "Visualizing Relationships"),
+          
+          div(class = "teaching-box",
+              h5(icon("graduation-cap"), " Learning Objective"),
+              p("Learn to create and interpret scatter plots."),
+              p("Understand correlation coefficients and relationship strength.")
+          ),
+          
+          # Show different content based on analysis type
+          conditionalPanel(
+            condition = "input.analysis_type == 'simple'",
+            
+            fluidRow(
+              column(4,
+                     div(class = "metric-card",
+                         div(class = "metric-label", "Correlation (r)"),
+                         div(class = "metric-value", textOutput("corr_coef")),
+                         div(class = "metric-sub", textOutput("corr_strength"))
+                     )
+              ),
+              column(4,
+                     div(class = "metric-card",
+                         div(class = "metric-label", "R² (Determination)"),
+                         div(class = "metric-value", textOutput("r_squared")),
+                         div(class = "metric-sub", "% variance explained")
+                     )
+              ),
+              column(4,
+                     div(class = "metric-card",
+                         div(class = "metric-label", "Sample Size"),
+                         div(class = "metric-value", textOutput("sample_size")),
+                         div(class = "metric-sub", "observations")
+                     )
+              )
+            ),
+            
+            br(),
+            
+            div(class = "plot-container large-plot",
+                h4("📊 Scatter Plot with Regression Line"),
+                plotlyOutput("scatter_plot", height = "500px"),
+                div(class = "teaching-box",
+                    h5("💡 Interpretation"),
+                    uiOutput("scatter_interpretation")
+                )
+            ),
+            
+            br(),
+            
+            fluidRow(
+              column(6,
+                     h4("📐 Correlation Strength Guide"),
+                     tags$table(class = "table table-striped",
+                                tags$tr(tags$th("r Value"), tags$th("Interpretation")),
+                                tags$tr(tags$td("0.9 to 1.0"), tags$td("Very Strong Positive")),
+                                tags$tr(tags$td("0.7 to 0.9"), tags$td("Strong Positive")),
+                                tags$tr(tags$td("0.4 to 0.7"), tags$td("Moderate Positive")),
+                                tags$tr(tags$td("0.0 to 0.4"), tags$td("Weak Positive")),
+                                tags$tr(tags$td("-0.4 to 0.0"), tags$td("Weak Negative")),
+                                tags$tr(tags$td("-0.7 to -0.4"), tags$td("Moderate Negative")),
+                                tags$tr(tags$td("-0.9 to -0.7"), tags$td("Strong Negative")),
+                                tags$tr(tags$td("-1.0 to -0.9"), tags$td("Very Strong Negative"))
+                     )
+              ),
+              column(6,
+                     h4("📊 Data Summary"),
+                     tableOutput("data_summary")
+              )
+            )
+          ),
+          
+          conditionalPanel(
+            condition = "input.analysis_type == 'multiple'",
+            
+            fluidRow(
+              column(12,
+                     div(class = "metric-card",
+                         div(class = "metric-label", "Multiple R²"),
+                         div(class = "metric-value", textOutput("multi_r_squared")),
+                         div(class = "metric-sub", textOutput("multi_r_squared_adj"))
+                     )
+              )
+            ),
+            
+            br(),
+            
+            h4("📊 Correlation Matrix"),
+            div(class = "correlation-matrix",
+                plotlyOutput("correlation_matrix_plot", height = "500px")
+            ),
+            
+            br(),
+            
+            h4("📋 Correlation Table"),
+            DTOutput("correlation_table"),
+            
+            br(),
+            
+            h4("🔍 Scatter Plot Matrix (Pairs Plot)"),
+            plotOutput("pairs_plot", height = "600px")
+          ),
+          
+          hr(),
+          
+          div(class = "teaching-box",
+              h4("🎯 Check Your Understanding"),
+              radioButtons("quiz1",
+                           "What does correlation measure?",
+                           choices = c(
+                             "Causation between variables" = "a",
+                             "Strength and direction of linear relationship" = "b",
+                             "Difference between variables" = "c"
+                           )
+              ),
+              actionButton("check1", "Check Answer", class = "btn-primary"),
+              br(), br(),
+              uiOutput("feedback1")
+          )
+        ),
+        
+        # =====================================================================
+        # TAB 2: REGRESSION ANALYSIS
+        # =====================================================================
+        tabPanel(
+          "Level 2: Regression Analysis",
+          icon = icon("chart-line"),
+          
+          br(),
+          conditionalPanel(
+            condition = "input.analysis_type == 'simple'",
+            h3(span(class = "level-badge level-2", "LEVEL 2"), "Simple Linear Regression")
+          ),
+          conditionalPanel(
+            condition = "input.analysis_type == 'multiple'",
+            h3(span(class = "level-badge level-2", "LEVEL 2"), "Multiple Linear Regression")
+          ),
+          
+          div(class = "teaching-box",
+              h5(icon("graduation-cap"), " Learning Objective"),
+              conditionalPanel(
+                condition = "input.analysis_type == 'simple'",
+                p("Understand the equation: Y = a + bX"),
+                p("Learn to interpret slope and intercept.")
+              ),
+              conditionalPanel(
+                condition = "input.analysis_type == 'multiple'",
+                p("Understand: Y = β₀ + β₁X₁ + β₂X₂ + ... + βₙXₙ"),
+                p("Learn to interpret multiple coefficients and their significance.")
+              )
+          ),
+          
+          # Simple regression
+          conditionalPanel(
+            condition = "input.analysis_type == 'simple'",
+            
+            fluidRow(
+              column(6,
+                     div(class = "metric-card",
+                         div(class = "metric-label", "Intercept (a)"),
+                         div(class = "metric-value", textOutput("intercept_val")),
+                         div(class = "metric-sub", "Y when X = 0")
+                     )
+              ),
+              column(6,
+                     div(class = "metric-card",
+                         div(class = "metric-label", "Slope (b)"),
+                         div(class = "metric-value", textOutput("slope_val")),
+                         div(class = "metric-sub", "Change in Y per unit X")
+                     )
+              )
+            ),
+            
+            br(),
+            
+            div(class = "equation-box",
+                div(class = "equation-formula", uiOutput("regression_equation"))
+            ),
+            
+            br(),
+            
+            div(class = "plot-container large-plot",
+                h4("📈 Regression Line"),
+                plotlyOutput("regression_plot", height = "500px")
+            ),
+            
+            br(),
+            
+            div(class = "teaching-box",
+                h5("📊 Coefficient Interpretation"),
+                uiOutput("coef_interpretation")
+            ),
+            
+            br(),
+            
+            h4("🎯 Make Predictions"),
+            fluidRow(
+              column(6,
+                     numericInput("predict_x", "Enter X value:", 50)
+              ),
+              column(6,
+                     br(),
+                     actionButton("calc_pred", "Calculate", class = "btn-success")
+              )
+            ),
+            uiOutput("prediction_result")
+          ),
+          
+          # Multiple regression
+          conditionalPanel(
+            condition = "input.analysis_type == 'multiple'",
+            
+            h4("📋 Regression Coefficients"),
+            DTOutput("multi_coef_table"),
+            
+            br(),
+            
+            div(class = "equation-box",
+                div(class = "equation-formula", uiOutput("multi_equation"))
+            ),
+            
+            br(),
+            
+            div(class = "teaching-box",
+                h5("📊 Model Summary"),
+                verbatimTextOutput("multi_summary")
+            ),
+            
+            br(),
+            
+            h4("📊 Coefficient Plots"),
+            fluidRow(
+              column(6,
+                     plotOutput("coef_plot", height = "400px")
+              ),
+              column(6,
+                     plotOutput("coef_ci_plot", height = "400px")
+              )
+            ),
+            
+            br(),
+            
+            h4("🎯 Make Predictions"),
+            uiOutput("multi_prediction_inputs"),
+            br(),
+            actionButton("calc_pred_multi", "Calculate Prediction", class = "btn-success"),
+            br(), br(),
+            uiOutput("multi_prediction_result")
+          )
+        ),
+        
+        # =====================================================================
+        # TAB 3: RESIDUAL ANALYSIS
+        # =====================================================================
+        tabPanel(
+          "Level 3: Residuals & Diagnostics",
+          icon = icon("wave-square"),
+          
+          br(),
+          h3(span(class = "level-badge level-3", "LEVEL 3"), "Residual Analysis"),
+          
+          div(class = "teaching-box",
+              h5(icon("graduation-cap"), " Learning Objective"),
+              p("Understand residuals and check regression assumptions.")
+          ),
+          
+          fluidRow(
+            column(4,
+                   div(class = "metric-card",
+                       div(class = "metric-label", "RMSE"),
+                       div(class = "metric-value", textOutput("rmse_val")),
+                       div(class = "metric-sub", "Root Mean Squared Error")
+                   )
+            ),
+            column(4,
+                   div(class = "metric-card",
+                       div(class = "metric-label", "MAE"),
+                       div(class = "metric-value", textOutput("mae_val")),
+                       div(class = "metric-sub", "Mean Absolute Error")
+                   )
+            ),
+            column(4,
+                   div(class = "metric-card",
+                       div(class = "metric-label", "MSE"),
+                       div(class = "metric-value", textOutput("mse_val")),
+                       div(class = "metric-sub", "Mean Squared Error")
+                   )
+            )
+          ),
+          
+          br(),
+          
+          fluidRow(
+            column(6,
+                   div(class = "plot-container",
+                       h4("📊 Residual Plot"),
+                       plotlyOutput("residual_plot", height = "400px")
+                   )
+            ),
+            column(6,
+                   div(class = "plot-container",
+                       h4("📈 Residual Histogram"),
+                       plotlyOutput("residual_hist", height = "400px")
+                   )
+            )
+          ),
+          
+          br(),
+          
+          fluidRow(
+            column(6,
+                   div(class = "plot-container",
+                       h4("📊 Q-Q Plot"),
+                       plotOutput("qq_plot", height = "400px")
+                   )
+            ),
+            column(6,
+                   div(class = "plot-container",
+                       h4("📊 Scale-Location"),
+                       plotOutput("scale_location", height = "400px")
+                   )
+            )
+          ),
+          
+          br(),
+          
+          div(class = "teaching-box",
+              h4("✅ Assumptions Check"),
+              uiOutput("assumptions_check")
+          ),
+          
+          # Multiple regression diagnostics
+          conditionalPanel(
+            condition = "input.analysis_type == 'multiple'",
+            br(),
+            h4("🔍 Multicollinearity Check (VIF)"),
+            div(class = "teaching-box",
+                p("VIF > 10 indicates severe multicollinearity"),
+                p("VIF > 5 indicates moderate multicollinearity")
+            ),
+            tableOutput("vif_table")
+          )
+        ),
+        
+        # =====================================================================
+        # TAB 4: STATISTICAL INFERENCE
+        # =====================================================================
+        tabPanel(
+          "Level 4: Hypothesis Testing",
+          icon = icon("chart-bar"),
+          
+          br(),
+          h3(span(class = "level-badge level-4", "LEVEL 4"), "Statistical Inference"),
+          
+          div(class = "teaching-box",
+              h5(icon("graduation-cap"), " Learning Objective"),
+              p("Test statistical significance of relationships.")
+          ),
+          
+          fluidRow(
+            column(4,
+                   div(class = "metric-card",
+                       div(class = "metric-label", "F-statistic"),
+                       div(class = "metric-value", textOutput("f_stat")),
+                       div(class = "metric-sub", "Model significance")
+                   )
+            ),
+            column(4,
+                   div(class = "metric-card",
+                       div(class = "metric-label", "p-value"),
+                       div(class = "metric-value", textOutput("p_value")),
+                       div(class = "metric-sub", uiOutput("p_interp"))
+                   )
+            ),
+            column(4,
+                   div(class = "metric-card",
+                       div(class = "metric-label", "df"),
+                       div(class = "metric-value", textOutput("df_val")),
+                       div(class = "metric-sub", "Degrees of freedom")
+                   )
+            )
+          ),
+          
+          br(),
+          
+          div(class = "teaching-box",
+              h4("📊 Hypothesis Test"),
+              p(strong("H₀:"), " No relationship (all β = 0)"),
+              p(strong("H₁:"), " At least one significant relationship"),
+              p(strong("α:"), " 0.05"),
+              br(),
+              uiOutput("hypothesis_conclusion")
+          ),
+          
+          br(),
+          
+          h4("📐 Confidence Intervals (95%)"),
+          tableOutput("conf_intervals"),
+          
+          br(),
+          
+          h4("📊 ANOVA Table"),
+          tableOutput("anova_table"),
+          
+          br(),
+          
+          h4("📋 Complete Summary"),
+          verbatimTextOutput("full_summary")
+        ),
+        
+        # =====================================================================
+        # TAB 5: COMPLETE GUIDE
+        # =====================================================================
+        tabPanel(
+          "📚 Complete Guide",
+          icon = icon("book"),
+          
+          br(),
+          div(
+            style = "background: linear-gradient(135deg, #667eea, #764ba2); 
+                     padding: 30px; color: white; border-radius: 10px; margin-bottom: 30px;",
+            h2("📖 Complete Reference Guide", style = "margin: 0;"),
+            p("Correlation & Regression Analysis", style = "margin: 10px 0 0 0;")
+          ),
+          
+          h3("📐 Key Formulas"),
+          
+          fluidRow(
+            column(6,
+                   div(class = "teaching-box",
+                       h4("Correlation Coefficient"),
+                       p("r = Σ[(X - X̄)(Y - Ȳ)] / √[Σ(X - X̄)² × Σ(Y - Ȳ)²]"),
+                       p("Range: -1 to +1")
+                   ),
+                   br(),
+                   div(class = "teaching-box",
+                       h4("Simple Regression"),
+                       p("Ŷ = a + bX"),
+                       p("b = r × (Sy / Sx)"),
+                       p("a = Ȳ - bX̄")
+                   )
+            ),
+            column(6,
+                   div(class = "teaching-box",
+                       h4("Multiple Regression"),
+                       p("Ŷ = β₀ + β₁X₁ + β₂X₂ + ... + βₙXₙ"),
+                       p("Solved using matrix algebra")
+                   ),
+                   br(),
+                   div(class = "teaching-box",
+                       h4("R² (Coefficient of Determination)"),
+                       p("R² = SSR / SST"),
+                       p("Adjusted R² = 1 - (1-R²)(n-1)/(n-p-1)")
+                   )
+            )
+          ),
+          
+          br(),
+          
+          h3("💼 Business Applications"),
+          
+          fluidRow(
+            column(6,
+                   div(class = "teaching-box",
+                       h4("📊 Simple Regression Uses"),
+                       p("• Sales vs Advertising"),
+                       p("• Price vs Demand"),
+                       p("• Experience vs Salary"),
+                       p("• Study time vs Performance")
+                   )
+            ),
+            column(6,
+                   div(class = "teaching-box",
+                       h4("📈 Multiple Regression Uses"),
+                       p("• House price prediction (size, location, age)"),
+                       p("• Sales forecasting (ad spend, season, price)"),
+                       p("• Student performance (study hours, attendance, sleep)"),
+                       p("• Employee productivity (experience, training, motivation)")
+                   )
+            )
+          ),
+          
+          br(),
+          
+          h3("⚠️ Common Mistakes"),
+          div(class = "teaching-box",
+              p("❌ Correlation = Causation"),
+              p("❌ Extrapolating beyond data"),
+              p("❌ Ignoring multicollinearity in multiple regression"),
+              p("❌ Not checking assumptions"),
+              p("❌ Including too many predictors (overfitting)")
+          ),
+          
+          br(),
+          
+          h3("✅ Regression Assumptions"),
+          fluidRow(
+            column(3,
+                   div(class = "teaching-box",
+                       h5("Linearity"),
+                       p("Linear relationship between variables")
+                   )
+            ),
+            column(3,
+                   div(class = "teaching-box",
+                       h5("Independence"),
+                       p("Independent observations")
+                   )
+            ),
+            column(3,
+                   div(class = "teaching-box",
+                       h5("Normality"),
+                       p("Residuals normally distributed")
+                   )
+            ),
+            column(3,
+                   div(class = "teaching-box",
+                       h5("Equal Variance"),
+                       p("Homoscedasticity")
+                   )
+            )
+          )
+        )
+      )
+    )
+  ),
+  
+  # Footer
+  tags$footer(
+    class = "app-footer",
+    div(
+      class = "footer-content",
+      div(
+        class = "footer-dev",
+        div(icon("user-graduate"), strong(" Developed by: Dr. M.I.M. Riyath")),
+        div("| Department of Accountancy and Finance | Faculty of Management and Commerce |"),
+        div("South Eastern University of Sri Lanka |")
+      ),
+      div(
+        class = "footer-contact",
+        icon("envelope"), " ",
+        tags$a(href = "mailto:riyath@seu.ac.lk", "riyath@seu.ac.lk", target = "_blank")
+      )
+    )
+  )
+)
+
+# =============================================================================
+# SERVER
+# =============================================================================
+
+server <- function(input, output, session) {
+  
+  # Example datasets
+  examples_simple <- list(
+    sales_ad = data.frame(
+      X = c(10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80),
+      Y = c(25, 32, 38, 45, 52, 58, 65, 71, 78, 85, 91, 98, 105, 112, 118)
+    ),
+    study_exam = data.frame(
+      X = c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+      Y = c(55, 60, 62, 68, 72, 75, 78, 82, 85, 88, 90, 93, 95, 97)
+    ),
+    temp_ice = data.frame(
+      X = c(15, 18, 20, 22, 25, 28, 30, 32, 35, 38, 40, 42, 45),
+      Y = c(120, 145, 165, 180, 210, 245, 270, 295, 330, 365, 390, 420, 455)
+    ),
+    exp_salary = data.frame(
+      X = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 20),
+      Y = c(30, 35, 38, 42, 45, 48, 52, 55, 58, 62, 68, 78, 88, 95)
+    )
+  )
+  
+  examples_multi <- list(
+    house = data.frame(
+      Size = c(1200, 1500, 1800, 2000, 2200, 2500, 2800, 3000, 3200, 3500, 3800, 4000, 4200, 4500, 5000),
+      Age = c(10, 5, 15, 8, 12, 3, 20, 6, 9, 4, 18, 7, 11, 2, 14),
+      Rooms = c(3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 8, 8),
+      Price = c(250, 280, 310, 340, 360, 400, 420, 450, 480, 520, 540, 580, 600, 650, 700)
+    ),
+    student = data.frame(
+      Study_Hours = c(2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+      Attendance = c(60, 65, 70, 75, 80, 82, 85, 88, 90, 92, 94, 96, 98, 100),
+      Sleep_Hours = c(5, 6, 6, 7, 7, 7, 8, 8, 8, 8, 7, 7, 6, 6),
+      Previous_Score = c(50, 55, 60, 65, 68, 70, 72, 75, 78, 80, 82, 85, 88, 90),
+      Final_Score = c(55, 62, 68, 73, 78, 82, 85, 88, 91, 93, 95, 97, 98, 99)
+    ),
+    sales_multi = data.frame(
+      Ad_Spend = c(10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75),
+      Price = c(50, 48, 46, 44, 42, 40, 38, 36, 34, 32, 30, 28, 26, 24),
+      Competitors = c(3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9),
+      Sales = c(100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340, 360)
+    )
+  )
+  
+  # Get data
+  get_data <- reactive({
+    if (input$analysis_type == "simple") {
+      if (input$data_source == "generate") {
+        set.seed(input$rand_seed)
+        X <- rnorm(input$n_obs, input$x_mean, input$x_sd)
+        noise <- rnorm(input$n_obs, 0, input$noise)
+        Y <- 10 + 2*X + noise
+        target_cor <- cor(X, Y)
+        adjustment <- (input$true_corr - target_cor) * sd(Y)
+        Y <- Y + adjustment * scale(X)[,1]
+        data.frame(X = X, Y = Y)
+        
+      } else if (input$data_source == "manual") {
+        x <- as.numeric(unlist(strsplit(input$manual_x, ",")))
+        y <- as.numeric(unlist(strsplit(input$manual_y, ",")))
+        data.frame(X = x[!is.na(x)], Y = y[!is.na(y)])
+        
+      } else if (input$data_source == "upload") {
+        req(input$csv_file)
+        df <- read.csv(input$csv_file$datapath)
+        data.frame(X = df[,1], Y = df[,2])
+        
+      } else {
+        examples_simple[[input$example_simple]]
+      }
+    } else {
+      if (input$data_source == "generate") {
+        set.seed(input$rand_seed_multi)
+        n <- input$n_obs_multi
+        p <- input$n_predictors
+        
+        X <- matrix(rnorm(n * p), n, p)
+        colnames(X) <- paste0("X", 1:p)
+        
+        beta <- runif(p, -2, 2)
+        Y <- 10 + X %*% beta + rnorm(n, 0, 5)
+        
+        df <- as.data.frame(cbind(X, Y = as.vector(Y)))
+        df
+        
+      } else if (input$data_source == "upload") {
+        req(input$csv_file)
+        read.csv(input$csv_file$datapath)
+        
+      } else {
+        examples_multi[[input$example_multi]]
+      }
+    }
+  })
+  
+  # Regression model
+  reg_model <- reactive({
+    data <- get_data()
+    if (input$analysis_type == "simple") {
+      lm(Y ~ X, data = data)
+    } else {
+      formula_str <- paste(names(data)[ncol(data)], "~", 
+                           paste(names(data)[-ncol(data)], collapse = " + "))
+      lm(as.formula(formula_str), data = data)
+    }
+  })
+  
+  # ==========================================================================
+  # LEVEL 1 OUTPUTS
+  # ==========================================================================
+  
+  # Simple regression outputs
+  output$corr_coef <- renderText({
+    data <- get_data()
+    sprintf("%.3f", cor(data$X, data$Y))
+  })
+  
+  output$corr_strength <- renderText({
+    data <- get_data()
+    r <- abs(cor(data$X, data$Y))
+    if (r >= 0.9) "Very Strong"
+    else if (r >= 0.7) "Strong"
+    else if (r >= 0.4) "Moderate"
+    else "Weak"
+  })
+  
+  output$r_squared <- renderText({
+    model <- reg_model()
+    r2 <- summary(model)$r.squared
+    sprintf("%.3f (%.1f%%)", r2, r2 * 100)
+  })
+  
+  output$sample_size <- renderText({
+    as.character(nrow(get_data()))
+  })
+  
+  output$scatter_plot <- renderPlotly({
+    data <- get_data()
+    model <- reg_model()
+    data$predicted <- predict(model)
+    
+    p <- plot_ly(data, x = ~X, y = ~Y, type = 'scatter', mode = 'markers',
+                 marker = list(size = 10, color = '#667eea'),
+                 name = 'Observed')
+    
+    if (input$show_reg_line) {
+      p <- p %>% add_trace(x = ~X, y = ~predicted, mode = 'lines',
+                           line = list(color = 'red', width = 3),
+                           name = 'Regression')
+    }
+    
+    if (input$show_residuals) {
+      for(i in 1:nrow(data)) {
+        p <- p %>% add_segments(
+          x = data$X[i], xend = data$X[i],
+          y = data$Y[i], yend = data$predicted[i],
+          line = list(color = 'gray', dash = 'dot'),
+          showlegend = FALSE
+        )
+      }
+    }
+    
+    p %>% layout(xaxis = list(title = "X"), yaxis = list(title = "Y"))
+  })
+  
+  output$scatter_interpretation <- renderUI({
+    data <- get_data()
+    r <- cor(data$X, data$Y)
+    direction <- if (r > 0) "positive" else if (r < 0) "negative" else "no"
+    
+    div(
+      p(icon("chart-line"), strong(" Direction: "), sprintf("%s relationship", direction)),
+      p(icon("signal"), strong(" Strength: "), sprintf("r = %.3f (%s)", r, input$corr_strength)),
+      p(icon("percentage"), strong(" R² = %.1f%%"), 
+        sprintf(" of Y variance explained by X", summary(reg_model())$r.squared * 100))
+    )
+  })
+  
+  output$data_summary <- renderTable({
+    data <- get_data()
+    data.frame(
+      Variable = c("X", "Y"),
+      Mean = c(mean(data$X), mean(data$Y)),
+      SD = c(sd(data$X), sd(data$Y)),
+      Min = c(min(data$X), min(data$Y)),
+      Max = c(max(data$X), max(data$Y))
+    )
+  })
+  
+  # Multiple regression outputs
+  output$multi_r_squared <- renderText({
+    model <- reg_model()
+    sprintf("%.3f", summary(model)$r.squared)
+  })
+  
+  output$multi_r_squared_adj <- renderText({
+    model <- reg_model()
+    sprintf("Adjusted R² = %.3f", summary(model)$adj.r.squared)
+  })
+  
+  output$correlation_matrix_plot <- renderPlotly({
+    data <- get_data()
+    cor_mat <- cor(data)
+    
+    plot_ly(z = cor_mat, x = colnames(cor_mat), y = colnames(cor_mat),
+            type = "heatmap", colorscale = "RdBu", zmid = 0,
+            text = round(cor_mat, 3), texttemplate = "%{text}") %>%
+      layout(title = "Correlation Heatmap")
+  })
+  
+  output$correlation_table <- renderDT({
+    data <- get_data()
+    cor_mat <- cor(data)
+    datatable(round(cor_mat, 3), options = list(pageLength = 10))
+  })
+  
+  output$pairs_plot <- renderPlot({
+    pairs(get_data(), col = "#667eea", pch = 19)
+  })
+  
+  # Quiz
+  observeEvent(input$check1, {
+    output$feedback1 <- renderUI({
+      if (input$quiz1 == "b") {
+        div(class = "quiz-correct",
+            icon("check-circle"), " Correct!")
+      } else {
+        div(class = "quiz-incorrect",
+            icon("times-circle"), " Incorrect. Correlation measures linear relationship strength.")
+      }
+    })
+  })
+  
+  # ==========================================================================
+  # LEVEL 2 OUTPUTS
+  # ==========================================================================
+  
+  output$intercept_val <- renderText({
+    sprintf("%.3f", coef(reg_model())[1])
+  })
+  
+  output$slope_val <- renderText({
+    sprintf("%.3f", coef(reg_model())[2])
+  })
+  
+  output$regression_equation <- renderUI({
+    coefs <- coef(reg_model())
+    sign <- if (coefs[2] >= 0) "+" else ""
+    HTML(sprintf("Ŷ = %.3f %s %.3f X", coefs[1], sign, coefs[2]))
+  })
+  
+  output$regression_plot <- renderPlotly({
+    data <- get_data()
+    model <- reg_model()
+    data$predicted <- predict(model)
+    
+    p <- plot_ly(data, x = ~X, y = ~Y, type = 'scatter', mode = 'markers',
+                 marker = list(size = 10, color = '#667eea'), name = 'Observed')
+    
+    p <- p %>% add_trace(x = ~X, y = ~predicted, mode = 'lines',
+                         line = list(color = 'red', width = 3), name = 'Fitted')
+    
+    if (input$show_confidence) {
+      pred_int <- predict(model, interval = "confidence")
+      data$lwr <- pred_int[,2]
+      data$upr <- pred_int[,3]
+      p <- p %>% add_ribbons(x = ~X, ymin = ~lwr, ymax = ~upr,
+                             fillcolor = 'rgba(255,0,0,0.2)', line = list(color = 'transparent'),
+                             name = '95% CI')
+    }
+    
+    p %>% layout(xaxis = list(title = "X"), yaxis = list(title = "Y"))
+  })
+  
+  output$coef_interpretation <- renderUI({
+    coefs <- coef(reg_model())
+    div(
+      p(strong("Intercept:"), sprintf(" %.3f (Y when X = 0)", coefs[1])),
+      p(strong("Slope:"), sprintf(" %.3f (Y changes by %.3f per unit X)", coefs[2], coefs[2]))
+    )
+  })
+  
+  observeEvent(input$calc_pred, {
+    output$prediction_result <- renderUI({
+      pred <- predict(reg_model(), newdata = data.frame(X = input$predict_x))
+      div(style = "background: #d4edda; padding: 15px; border-radius: 5px; margin-top: 10px;",
+          h5(icon("check-circle"), " Prediction:", style = "color: #155724; margin: 0;"),
+          p(strong(sprintf("Ŷ = %.3f", pred)), style = "font-size: 18px; color: #155724;")
+      )
+    })
+  })
+  
+  # Multiple regression
+  output$multi_coef_table <- renderDT({
+    model <- reg_model()
+    coef_summary <- summary(model)$coefficients
+    df <- as.data.frame(coef_summary)
+    df$Variable <- rownames(df)
+    df <- df[, c("Variable", "Estimate", "Std. Error", "t value", "Pr(>|t|)")]
+    names(df) <- c("Variable", "Coefficient", "Std Error", "t-value", "p-value")
+    datatable(df, options = list(pageLength = 10)) %>% 
+      formatRound(2:5, 4)
+  })
+  
+  output$multi_equation <- renderUI({
+    coefs <- coef(reg_model())
+    terms <- paste(sprintf("%.3f%s", coefs[-1], names(coefs)[-1]), collapse = " + ")
+    HTML(sprintf("Ŷ = %.3f + %s", coefs[1], terms))
+  })
+  
+  output$multi_summary <- renderPrint({
+    summary(reg_model())
+  })
+  
+  output$coef_plot <- renderPlot({
+    coefs <- coef(reg_model())[-1]
+    barplot(coefs, col = "#667eea", main = "Regression Coefficients",
+            ylab = "Coefficient Value", las = 2)
+    abline(h = 0, col = "red", lty = 2)
+  })
+  
+  output$coef_ci_plot <- renderPlot({
+    ci <- confint(reg_model())[-1,]
+    coefs <- coef(reg_model())[-1]
+    
+    plot(coefs, 1:length(coefs), xlim = range(ci), pch = 19, col = "#667eea",
+         yaxt = "n", ylab = "", xlab = "Coefficient Value",
+         main = "95% Confidence Intervals")
+    axis(2, at = 1:length(coefs), labels = names(coefs), las = 2)
+    segments(ci[,1], 1:length(coefs), ci[,2], 1:length(coefs), col = "#667eea", lwd = 2)
+    abline(v = 0, col = "red", lty = 2)
+  })
+  
+  output$multi_prediction_inputs <- renderUI({
+    data <- get_data()
+    predictors <- names(data)[-ncol(data)]
+    
+    lapply(1:length(predictors), function(i) {
+      fluidRow(
+        column(12,
+               numericInput(paste0("pred_", i), 
+                            paste(predictors[i], ":"),
+                            value = mean(data[, i]), step = 0.1)
+        )
+      )
+    })
+  })
+  
+  observeEvent(input$calc_pred_multi, {
+    output$multi_prediction_result <- renderUI({
+      data <- get_data()
+      predictors <- names(data)[-ncol(data)]
+      
+      new_data <- sapply(1:length(predictors), function(i) {
+        input[[paste0("pred_", i)]]
+      })
+      
+      new_df <- as.data.frame(t(new_data))
+      names(new_df) <- predictors
+      
+      pred <- predict(reg_model(), newdata = new_df)
+      
+      div(style = "background: #d4edda; padding: 15px; border-radius: 5px; margin-top: 10px;",
+          h5(icon("check-circle"), " Prediction:", style = "color: #155724; margin: 0;"),
+          p(strong(sprintf("Predicted Y = %.3f", pred)), style = "font-size: 18px; color: #155724;")
+      )
+    })
+  })
+  
+  # ==========================================================================
+  # LEVEL 3 OUTPUTS
+  # ==========================================================================
+  
+  output$rmse_val <- renderText({
+    sprintf("%.3f", sqrt(mean(residuals(reg_model())^2)))
+  })
+  
+  output$mae_val <- renderText({
+    sprintf("%.3f", mean(abs(residuals(reg_model()))))
+  })
+  
+  output$mse_val <- renderText({
+    sprintf("%.3f", mean(residuals(reg_model())^2))
+  })
+  
+  output$residual_plot <- renderPlotly({
+    model <- reg_model()
+    df <- data.frame(Fitted = fitted(model), Residuals = residuals(model))
+    
+    plot_ly(df, x = ~Fitted, y = ~Residuals, type = 'scatter', mode = 'markers',
+            marker = list(color = '#667eea')) %>%
+      add_trace(x = range(df$Fitted), y = c(0, 0), mode = 'lines',
+                line = list(color = 'red', dash = 'dash'), showlegend = FALSE) %>%
+      layout(xaxis = list(title = "Fitted"), yaxis = list(title = "Residuals"))
+  })
+  
+  output$residual_hist <- renderPlotly({
+    plot_ly(x = residuals(reg_model()), type = "histogram",
+            marker = list(color = '#667eea')) %>%
+      layout(xaxis = list(title = "Residuals"), yaxis = list(title = "Frequency"))
+  })
+  
+  output$qq_plot <- renderPlot({
+    qqnorm(residuals(reg_model()), col = "#667eea", pch = 19)
+    qqline(residuals(reg_model()), col = "red", lwd = 2)
+  })
+  
+  output$scale_location <- renderPlot({
+    plot(reg_model(), which = 3)
+  })
+  
+  output$assumptions_check <- renderUI({
+    resid <- residuals(reg_model())
+    norm_test <- shapiro.test(resid)
+    
+    div(
+      p(icon(ifelse(norm_test$p.value > 0.05, "check", "times")),
+        strong(" Normality: "),
+        ifelse(norm_test$p.value > 0.05, "✅ OK", "❌ Violated"),
+        sprintf(" (p = %.3f)", norm_test$p.value))
+    )
+  })
+  
+  output$vif_table <- renderTable({
+    if (input$analysis_type == "multiple") {
+      model <- reg_model()
+      if (length(coef(model)) > 2) {
+        vif_vals <- vif(model)
+        data.frame(
+          Variable = names(vif_vals),
+          VIF = vif_vals,
+          Status = ifelse(vif_vals > 10, "⚠️ Severe", 
+                          ifelse(vif_vals > 5, "⚠️ Moderate", "✅ OK"))
+        )
+      }
+    }
+  })
+  
+  # ==========================================================================
+  # LEVEL 4 OUTPUTS
+  # ==========================================================================
+  
+  output$f_stat <- renderText({
+    sprintf("%.3f", summary(reg_model())$fstatistic[1])
+  })
+  
+  output$p_value <- renderText({
+    pf <- pf(summary(reg_model())$fstatistic[1],
+             summary(reg_model())$fstatistic[2],
+             summary(reg_model())$fstatistic[3],
+             lower.tail = FALSE)
+    if (pf < 0.001) "< 0.001" else sprintf("%.4f", pf)
+  })
+  
+  output$p_interp <- renderUI({
+    pf <- pf(summary(reg_model())$fstatistic[1],
+             summary(reg_model())$fstatistic[2],
+             summary(reg_model())$fstatistic[3],
+             lower.tail = FALSE)
+    if (pf < 0.05) {
+      span("Significant", style = "color: green; font-weight: bold;")
+    } else {
+      span("Not significant", style = "color: red; font-weight: bold;")
+    }
+  })
+  
+  output$df_val <- renderText({
+    sprintf("%d, %d", 
+            summary(reg_model())$fstatistic[2],
+            summary(reg_model())$fstatistic[3])
+  })
+  
+  output$hypothesis_conclusion <- renderUI({
+    pf <- pf(summary(reg_model())$fstatistic[1],
+             summary(reg_model())$fstatistic[2],
+             summary(reg_model())$fstatistic[3],
+             lower.tail = FALSE)
+    
+    if (pf < 0.05) {
+      div(style = "background: #d4edda; padding: 15px; border-radius: 5px;",
+          h5(icon("check-circle"), " Reject H₀", style = "color: #155724; margin: 0;"),
+          p("Statistically significant relationship exists", style = "color: #155724;")
+      )
+    } else {
+      div(style = "background: #f8d7da; padding: 15px; border-radius: 5px;",
+          h5(icon("times-circle"), " Fail to reject H₀", style = "color: #721c24; margin: 0;"),
+          p("No significant relationship", style = "color: #721c24;")
+      )
+    }
+  })
+  
+  output$conf_intervals <- renderTable({
+    ci <- confint(reg_model())
+    data.frame(
+      Coefficient = rownames(ci),
+      `Lower 95%` = ci[,1],
+      `Upper 95%` = ci[,2],
+      check.names = FALSE
+    )
+  })
+  
+  output$anova_table <- renderTable({
+    anova(reg_model())
+  })
+  
+  output$full_summary <- renderPrint({
+    summary(reg_model())
+  })
+  
+  # ==========================================================================
+  # DOWNLOAD HANDLERS
+  # ==========================================================================
+  
+  output$download_data <- downloadHandler(
+    filename = function() paste0("regression_data_", Sys.Date(), ".csv"),
+    content = function(file) {
+      write.csv(get_data(), file, row.names = FALSE)
+    }
+  )
+  
+  output$download_report <- downloadHandler(
+    filename = function() paste0("regression_report_", Sys.Date(), ".csv"),
+    content = function(file) {
+      model <- reg_model()
+      report <- data.frame(
+        Statistic = c("R-squared", "Adj R-squared", "RMSE", "F-statistic", "p-value"),
+        Value = c(
+          summary(model)$r.squared,
+          summary(model)$adj.r.squared,
+          sqrt(mean(residuals(model)^2)),
+          summary(model)$fstatistic[1],
+          pf(summary(model)$fstatistic[1], summary(model)$fstatistic[2],
+             summary(model)$fstatistic[3], lower.tail = FALSE)
+        )
+      )
+      write.csv(report, file, row.names = FALSE)
+    }
+  )
+}
+
+shinyApp(ui = ui, server = server)
